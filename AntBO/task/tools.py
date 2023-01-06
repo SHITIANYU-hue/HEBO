@@ -1,5 +1,5 @@
 import os
-
+import json
 # import pymol
 import __main__
 import subprocess
@@ -36,6 +36,7 @@ class Absolut(BaseTool):
         x: categorical vector (num_Seq x Length)
         '''
         x = x.astype('int32')
+        # print('x input',x)
         if len(x.shape) == 1:
             x = x.reshape(1, -1)
 
@@ -50,23 +51,31 @@ class Absolut(BaseTool):
         with open(f"TempCDR3_{self.config['antigen']}.txt", "w") as f:
             for i, seq in enumerate(x):
                 seq2char = ''.join(self.idx_to_AA[aa] for aa in seq)
+                print('seq2char',seq2char)
                 line = f"{i + 1}\t{seq2char}\n"
                 f.write(line)
                 sequences.append(seq2char)
-
+        print('seq',sequences)
         _ = subprocess.run(
             ['taskset', '-c', f"{self.config['startTask']}-{self.config['startTask'] + self.config['process']}",
              "./src/bin/Absolut", 'repertoire', self.config['antigen'], f"TempCDR3_{self.config['antigen']}.txt",
              str(self.config['process'])], capture_output=True, text=False)
+
+        # _ = subprocess.run(
+        #     ['taskset', '-c', f"{self.config['startTask']}-{self.config['startTask'] + self.config['process']}",
+        #      "./src/bin/Absolut", 'repertoire', self.config['antigen'], f"/home/tianyu/code/biodrug/unify-length/{self.config['antigen']}.txt",
+        #      str(self.config['process'])], capture_output=True, text=False)
 
         data = pd.read_csv(os.path.join(self.config['path'],
                                         f"{self.config['antigen']}FinalBindings_Process_1_Of_1.txt"),
                            sep='\t', skiprows=1)
 
         # Add an extra column to ensure that ordering will be ok after groupby operation
+        # print('data',data)
         data['sequence_idx'] = data.apply(lambda row: int(row.ID_slide_Variant.split("_")[0]), axis=1)
         energy = data.groupby(by=['sequence_idx']).min(['Energy'])
         min_energy = energy['Energy'].values
+        print('energy',min_energy)
 
         # Remove all created files and change the working directory to what it was
         for i in range(self.config['process']):
@@ -75,8 +84,15 @@ class Absolut(BaseTool):
 
         os.remove(f"{self.config['antigen']}FinalBindings_Process_1_Of_1.txt")
         os.chdir(current_dir)
+        ## 因为最后输出seq以及对应的energy所以这里就从我们的数据里面sample就行
+
         return min_energy, sequences
 
+    def Energy_custom(self, x,data):
+        name= list(data.keys())
+        energy=data[name[x]]
+        sequences=x
+        return energy, sequences
 
 class AbsolutVisualisation:
     def __init__(self, config):

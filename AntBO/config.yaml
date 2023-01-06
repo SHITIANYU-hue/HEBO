@@ -15,7 +15,7 @@ data:
   nm_gen_seq: 250
   normalise: True
   path: './data'
-  target: 1ADQ
+  target: 2R56_A
   filename: _top_70000_corpus.csv
 
 

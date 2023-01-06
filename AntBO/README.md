@@ -119,8 +119,11 @@ python ./visualise_results/plot_convergence_curve.py --config ./visualise_result
 
 Follow the instructions in visualise3d.txt
 
+## comments
 
-
+1. results is saved in /home/tianyu/code/biodrug/HEBO/AntBO/results
+2./home/tianyu/code/biodrug/HEBO/AntBO/task/tools.py
+./src/bin/Absolut  repertoire 2R56_A  /home/tianyu/code/biodrug/HEBO/AntBO/Absolut/2R56_A.txt
 
 ## Cite us
 ```bibtex

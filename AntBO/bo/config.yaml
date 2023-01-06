@@ -1,10 +1,10 @@
 acq: ei
 ard: True
 n_init: 20
-max_iters: 200
+max_iters: 100
 min_cuda: 10
-device: 'cuda'
-seq_len: 11
+device: 'cpu'
+seq_len: 17
 normalise: True
 batch_size: 1
 save_path: './results/BO_transformed_overlap/'  # Put path where you want results to be stored '/ABS/PATH/TO/results/'
@@ -15,6 +15,6 @@ search_strategy: 'local' # local (CASMO), 'batch_local' (CASMO with NSGA con), '
 
 bbox:
   tool: Absolut
-  path: './Absolut' # Put path to Absolut (/ABS/PATH/TO/Absolut/)
+  path: '/home/tianyu/code/biodrug/HEBO/AntBO/Absolut/' # Put path to Absolut (/ABS/PATH/TO/Absolut/)
   process: 2    # Number of cores
   startTask: 0  # start core id
