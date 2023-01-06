@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Optional, Set
-
+import json
 ROOT_PROJECT = str(Path(os.path.realpath(__file__)).parent.parent)
 sys.path.insert(0, ROOT_PROJECT)
 
@@ -157,7 +157,7 @@ class BOExperiments:
                 x_best = ''.join([self.f_obj.fbox.idx_to_AA[j] for j in
                                   optim.casmopolitan.X[:(itern + 1) * self.config['batch_size']][argmin].flatten()])
                 self.res.iloc[itern, :] = [itern, float(Y[-1]), float(np.min(Y[:(itern + 1)])), rtime,
-                                           self.f_obj.idx_to_seq(x)[0], x_best]
+                                           self.f_obj.idx_to_seq(x)[0], x_best]                          
             # batch
             else:
                 for idx, j in enumerate(
@@ -184,10 +184,17 @@ class BOExperiments:
             optim = self.load()
         else:
             optim = None
+        
+        
+        file = open('/home/tianyu/code/biodrug/unify-length/data_ADQ_A.json')
+        data=json.load(file)
+        all_seq=list(data.keys())
 
         if not optim:
             optim = Optimizer(self.n_categories, min_cuda=self.config['min_cuda'],
                               n_init=self.config['n_init'], use_ard=self.config['ard'],
+                              observed_seq=None,
+                              all_seqs=all_seq,
                               acq=self.config['acq'],
                               cdr_constraints=self.cdr_constraints,
                               normalise=self.config['normalise'],
@@ -197,15 +204,21 @@ class BOExperiments:
                               alphabet_size=self.nm_AAs,
                               **kwargs
                               )
-
+        observed=[]
         for itern in range(self.start_itern, self.config['max_iters']):
             start = time.time()
-            x_next = optim.suggest(self.config['batch_size'])
-            if self.custom_initial_dataset and len(optim.casmopolitan.fX) < self.config['n_init']:
-                # observe the custom initial points instead of the suggested ones
-                n_random = min(x_next.shape[0], self.config['n_init'] - len(optim.casmopolitan.fX))
-                x_next[:n_random] = self.custom_initial_dataset.get_index_encoded_x()[
-                                    len(optim.casmopolitan.fX):len(optim.casmopolitan.fX) + n_random]
+            x_next = optim.suggest(self.config['batch_size'],observed_seq=observed) ## here we will propose new sequence 
+            observed.append(x_next)
+
+            ## delete it because we didn't use these line 
+            # if self.custom_initial_dataset and len(optim.casmopolitan.fX) < self.config['n_init']:
+            #     # observe the custom initial points instead of the suggested ones
+            #     n_random = min(x_next.shape[0], self.config['n_init'] - len(optim.casmopolitan.fX))
+            #     x_next[:n_random] = self.custom_initial_dataset.get_index_encoded_x()[
+            #                         len(optim.casmopolitan.fX):len(optim.casmopolitan.fX) + n_random]
+                # chang idea
+                # x_next= sample ID from our dataset
+            
             y_next = self.f_obj.compute(x_next)
             optim.observe(x_next, y_next)
             end = time.time()
@@ -269,11 +282,11 @@ if __name__ == '__main__':
 
             boexp = BOExperiments(config_, args.cdr_constraints, seeds[t])
 
-            try:
-                boexp.run()
-            except FileNotFoundError as e:
-                print(e.args)
-                continue
+            # try:
+            boexp.run()
+            # except FileNotFoundError as e:
+            #     print(e.args)
+            #     continue
 
             del boexp
             torch.cuda.empty_cache()

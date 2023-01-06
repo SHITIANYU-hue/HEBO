@@ -65,6 +65,8 @@ class CASMOPOLITANCat:
             n_init,
             max_evals,
             config,
+            observed,
+            all_seq,
             batch_size=1,
             verbose=True,
             use_ard=True,
@@ -151,6 +153,9 @@ class CASMOPOLITANCat:
         self.length_max_discrete = kwargs['length_max_discrete'] if 'length_max_discrete' in kwargs.keys() else 30
         self.length_init_discrete = kwargs['length_init_discrete'] if 'length_init_discrete' in kwargs.keys() else 20
 
+
+        self.observed_seq = observed
+        self.all_seq = all_seq
         # Save the full history
         self.X = np.zeros((0, self.dim))
         self.fX = np.zeros((0, 1))
@@ -197,7 +202,7 @@ class CASMOPOLITANCat:
             # self.length = max(self.length / 1.5, self.length_min)
             print("Shrink", self.length, self.length_discrete)
 
-    def _create_and_select_candidates(self, X, fX, length, n_training_steps, hypers, return_acq=False, num_samples=51,
+    def _create_and_select_candidates(self, X, fX, observed, length, n_training_steps, hypers, return_acq=False, num_samples=51,
                                       warmup_steps=100, thinning=1):
         # assert X.min() >= 0.0 and X.max() <= 1.0
         # Figure out what device we are running on
@@ -205,7 +210,6 @@ class CASMOPOLITANCat:
             fX = hebo_transform(fX)
         else:
             fX = (fX - fX.mean()) / (fX.std() + 1e-8)
-
         global device
         if len(X) < self.min_cuda:
             device, dtype = torch.device("cpu"), torch.float32
@@ -393,7 +397,7 @@ class CASMOPOLITANCat:
             if self.batch_size == 1:
                 # Sequential setting
                 if self.acq == 'ei':
-                    X_next, acq_next = search(x_center=x_center[0], f=_ei, config=self.config, max_hamming_dist=length,
+                    X_next, acq_next = search(x_center=x_center[0], f=_ei, config=self.config, max_hamming_dist=length,all_seq=self.all_seq,observed=observed,
                                               n_restart=3, batch_size=self.batch_size,
                                               cdr_constraints=self.cdr_constraints, seed=self.seed, dtype=self.dtype,
                                               device=self.device, **kwargs)

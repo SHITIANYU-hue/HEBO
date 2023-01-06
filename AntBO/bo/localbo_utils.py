@@ -3,11 +3,11 @@ from itertools import groupby
 from collections import Callable
 import random
 from copy import deepcopy
-
-from bo.bo_utils import check_cdr_constraints, idx_to_AA, N_glycosylation_pattern
+import numpy as np
+from bo.bo_utils import check_cdr_constraints, check_cdr_constraints_str, idx_to_AA, N_glycosylation_pattern
 from bo.kernels import *
 import re
-
+import json
 
 # from Bio.SeqUtils.ProtParam import ProteinAnalysis
 
@@ -157,6 +157,13 @@ def sample_neighbour_ordinal(x, n_categories):
     return x_pert
 
 
+
+def sample_new_seqs(all_seqs, observed_seqs, num_samples: int, rng: np.random.Generator):
+    candidate_pool = list(set(all_seqs) - set(observed_seqs))
+    proposed_seqs = rng.choice(candidate_pool, size=num_samples, replace=False)
+    return proposed_seqs
+
+
 def sample_neighbour_ordinal_constrained(x, n_categories):
     """Same as above, but the variables are represented ordinally."""
 
@@ -233,7 +240,7 @@ class CDRH3Prob(Problem):
     Maximise f_acq but taking the negative in  _evaluate to perform minimisation overall.
     A solution is considered as feasible of all constraint violations are less than zero."""
 
-    def __init__(self, f_acq: Callable, n_var=11, n_obj=1, n_constr=3, xl=0, xu=19, cdr_constraints=True,
+    def __init__(self, f_acq: Callable, n_var=11, n_obj=1, n_constr=3, xl=0, xu=19, cdr_constraints=False,
                  device=torch.device('cpu'), dtype=torch.float32, f2_acq=None, f3_acq=None):
         if f2_acq is not None:
             n_obj += 1
@@ -506,6 +513,8 @@ def local_search(x_center,
                  f: Callable,
                  config,
                  max_hamming_dist,
+                 all_seq,
+                 observed,
                  cdr_constraints: bool = False,
                  n_restart: int = 1,
                  batch_size: int = 1,
@@ -539,7 +548,8 @@ def local_search(x_center,
             tol_ = tol
             is_valid = False
             while not is_valid:
-                neighbour = sample_neighbour_ordinal(x, config)
+                neighbour = sample_new_seqs(all_seq,observed_seqs=observed,num_samples=1,rng=np.random.default_rng(42))
+                # neighbour = sample_neighbour_ordinal(x,config)
                 if cdr_constraints:
                     if not check_cdr_constraints(neighbour):
                         continue

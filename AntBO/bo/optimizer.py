@@ -32,6 +32,8 @@ class Optimizer:
 
     def __init__(self,
                  config: np.ndarray,
+                 observed_seq: np.ndarray,
+                 all_seqs: np.ndarray,
                  min_cuda,
                  batch_size: int =1,
                  normalise: bool = False,
@@ -73,6 +75,8 @@ class Optimizer:
         self.casmopolitan = CASMOPOLITANCat(
             min_cuda=min_cuda,
             dim=self.true_dim,
+            observed=observed_seq,
+            all_seq=all_seqs,
             n_init=n_init if n_init is not None else 2 * self.true_dim + 1,
             max_evals=self.max_evals,
             cdr_constraints = self.cdr_constraints,
@@ -166,7 +170,7 @@ class Optimizer:
                 itern += 1
             self.X_init = torch.stack(self.X_init, 0).squeeze()
 
-    def suggest(self, n_suggestions=1):
+    def suggest(self, observed, n_suggestions=1):
         if self.batch_size is None:  # Remember the batch size on the first call to suggest
             self.batch_size = n_suggestions
             self.casmopolitan.batch_size = n_suggestions
@@ -196,7 +200,7 @@ class Optimizer:
 
                 # try:
                 if True:
-                    X_next[-n_adapt:, :] = self.casmopolitan._create_and_select_candidates(X, fX,
+                    X_next[-n_adapt:, :] = self.casmopolitan._create_and_select_candidates(X, fX, observed,
                                                                                            length=self.casmopolitan.length_discrete,
                                                                                            n_training_steps=500,
                                                                                           hypers={})[-n_adapt:, :]

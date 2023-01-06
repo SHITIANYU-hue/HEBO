@@ -2,7 +2,7 @@ import numpy as np
 from bo.base import TestFunction
 from task.tools import Absolut
 import torch
-
+import json
 class BOTask(TestFunction):
     """
     BO Task Class
@@ -23,6 +23,7 @@ class BOTask(TestFunction):
         self.n_vertices = n_categories
         self.config = self.n_vertices
         self.dim = seq_len
+        self.dataset='/home/tianyu/code/biodrug/unify-length/data_ADQ_A.json'
         self.categorical_dims = np.arange(self.dim)
         if self.bbox['tool'] == 'Absolut':
             self.fbox = Absolut(self.bbox)
@@ -34,7 +35,9 @@ class BOTask(TestFunction):
         '''
         x: categorical vector
         '''
-        energy, _ = self.fbox.Energy(x)
+        # we can remove this line and load correspoinding energy from our dataset
+        energy, _ = self.fbox.Energy_custom(x,data=json.load(f'{self.dataset}')) ## x will not be list but will be sequecne 
+        
         energy = torch.tensor(energy, dtype=torch.float32).to(self.device)
         return energy
 
